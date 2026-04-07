@@ -446,3 +446,25 @@ def grade(task_id: str, phase_index: int, action: Action) -> "Reward":
         justification_score=round(justification_score, 4),
         feedback=" ".join(feedback_parts),
     )
+
+
+# Per-task grader functions conforming to standard (action, observation) -> float interface
+def grade_easy_001(action, observation=None) -> float:
+    """Grader for easy_001 task. Returns score in [0.0, 1.0]."""
+    phase_index = (observation.phase - 1) if observation and hasattr(observation, 'phase') else 0
+    reward = grade("easy_001", phase_index, action)
+    return reward.total_score
+
+
+def grade_medium_001(action, observation=None) -> float:
+    """Grader for medium_001 task. Returns score in [0.0, 1.0]."""
+    phase_index = (observation.phase - 1) if observation and hasattr(observation, 'phase') else 0
+    reward = grade("medium_001", phase_index, action)
+    return reward.total_score
+
+
+def grade_hard_001(action, observation=None) -> float:
+    """Grader for hard_001 task. Returns score in [0.0, 1.0]."""
+    phase_index = (observation.phase - 1) if observation and hasattr(observation, 'phase') else 0
+    reward = grade("hard_001", phase_index, action)
+    return reward.total_score

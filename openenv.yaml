@@ -1,4 +1,10 @@
+spec_version: 1
 name: job-reviewer
+type: space
+runtime: fastapi
+app: server.app:app
+port: 7860
+
 description: >
   Multi-phase hiring pipeline environment. An LLM agent evaluates candidates
   through progressive review stages — screening, deep analysis, candidate
@@ -18,14 +24,14 @@ tasks:
   - id: easy_001
     difficulty: easy
     description: "2-phase pipeline: Screen → Final Recommendation for a strong-match junior developer"
-    grader: job_reviewer_env.tasks:grade
+    grader: job_reviewer_env.tasks:grade_easy_001
   - id: medium_001
     difficulty: medium
     description: "3-phase pipeline: Screen → Revise → Compare two candidates for a data engineering role (career changer)"
-    grader: job_reviewer_env.tasks:grade
+    grader: job_reviewer_env.tasks:grade_medium_001
   - id: hard_001
     difficulty: hard
     description: "4-phase pipeline: Screen → Deep Analysis → Reference Check → Final for an overqualified candidate with burnout and employment gap"
-    grader: job_reviewer_env.tasks:grade
+    grader: job_reviewer_env.tasks:grade_hard_001
 
 inference: inference.py

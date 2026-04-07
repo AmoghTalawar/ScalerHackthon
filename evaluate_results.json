@@ -1,0 +1,38 @@
+[
+  {
+    "sample_index": 1,
+    "actual_label": "No Fit",
+    "jd_snippet": "Net2Source Inc. is an award-winning total workforce solutions company recognized by Staffing Industry Analysts for our accelerated growth of 300% in t",
+    "llm_evaluation": {
+      "decision": "REJECT",
+      "skills_match_score": 0.1,
+      "experience_match_score": 0.05,
+      "education_match_score": 0.0,
+      "justification": "Candidate is completely mismatched for the Basel Business Analyst role. The resume shows experience as a Sales Associate and Accountant with no mention of Basel, credit risk, banking/financial domain experience, or risk management. The candidate lacks the required 6+ years of relevant technical and business work experience in financial institutions. Their experience includes retail sales, basic accounting functions, and administrative management - none of which align with the complex requirements of Basel compliance, financial risk analysis, or technology solution implementation for major financial institutions. No relevant education or certifications in finance, risk management, or related fields are presented. The candidate's background is fundamentally incompatible with this highly specialized financial role requiring extensive Basel project experience."
+    }
+  },
+  {
+    "sample_index": 2,
+    "actual_label": "No Fit",
+    "jd_snippet": "At Salas OBrien we tell our clients that were engineered for impact. This passion for making a difference applies just as much to our team as it does ",
+    "llm_evaluation": {
+      "decision": "REJECT",
+      "skills_match_score": 0.2,
+      "experience_match_score": 0.3,
+      "education_match_score": 0.4,
+      "justification": "The candidate shows limited alignment with Salas O'Brien's engineering and professional services focus. While they have experience with facilities software coordination at Caterpillar and international project exposure, their background is primarily in software management rather than engineering design or consulting. The skills listed (guest services, inventory control, merchandising) are completely unrelated to engineering services. Their Master's in Industrial Management (2014) is somewhat relevant but not directly aligned with engineering disciplines. The candidate lacks experience in the specific industries mentioned (data centers, healthcare, science/tech, high-rise buildings, clean energy) and shows no evidence of engineering design, structural/building sciences, or infrastructure asset management capabilities required for the role."
+    }
+  },
+  {
+    "sample_index": 3,
+    "actual_label": "No Fit",
+    "jd_snippet": "Schweitzer Engineering Laboratories (SEL) Infrastructure Defense Division seeks a talented individual for a cybersecurity focused (Lead) Software Engi",
+    "llm_evaluation": {
+      "decision": "REJECT",
+      "skills_match_score": 0.1,
+      "experience_match_score": 0.05,
+      "education_match_score": 0.0,
+      "justification": "The candidate's background as an electrical apprentice in construction is fundamentally mismatched with the cybersecurity-focused Lead Software Engineer role. The position requires a Bachelor's degree in relevant technical fields (EE, CS, Cybersecurity, etc.) which the candidate lacks, and 6+ years of experience in object-oriented/embedded programming, network communications, or digital forensics. The candidate's experience is limited to electrical installation work, power tools, and construction projects with no demonstrated software development, cybersecurity, or leadership experience in technical teams. While the candidate shows leadership potential in construction contexts, there is no overlap with the required technical skills in programming languages (C, C++, Python), network protocols, or security testing methodologies. United States citizenship requirement is unknown from the resume."
+    }
+  }
+]
