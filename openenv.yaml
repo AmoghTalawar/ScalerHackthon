@@ -1,0 +1,28 @@
+name: job-reviewer
+description: >
+  Multi-phase hiring pipeline environment. An LLM agent evaluates candidates
+  through progressive review stages — screening, deep analysis, candidate
+  comparison, and reference integration — with grading feedback fed back as
+  context for subsequent phases. Supports curriculum scaling (easy=2 phases,
+  medium=3, hard=4) and multiple valid trajectories.
+version: "1.0.0"
+
+entry_point: job_reviewer_env.env:JobReviewerEnv
+
+models:
+  observation: job_reviewer_env.models:Observation
+  action: job_reviewer_env.models:Action
+  reward: job_reviewer_env.models:Reward
+
+tasks:
+  - id: easy_001
+    difficulty: easy
+    description: "2-phase pipeline: Screen → Final Recommendation for a strong-match junior developer"
+  - id: medium_001
+    difficulty: medium
+    description: "3-phase pipeline: Screen → Revise → Compare two candidates for a data engineering role (career changer)"
+  - id: hard_001
+    difficulty: hard
+    description: "4-phase pipeline: Screen → Deep Analysis → Reference Check → Final for an overqualified candidate with burnout and employment gap"
+
+inference: inference.py
