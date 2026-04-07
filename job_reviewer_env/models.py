@@ -16,11 +16,11 @@ class Observation(BaseModel):
 
 class Action(BaseModel):
     """The agent's structured review decision."""
-    decision: str = Field(description="Phase-appropriate decision string")
-    skills_match_score: float = Field(ge=0.0, le=1.0, description="How well skills match (0-1)")
-    experience_match_score: float = Field(ge=0.0, le=1.0, description="How well experience matches (0-1)")
-    education_match_score: float = Field(ge=0.0, le=1.0, description="How well education matches (0-1)")
-    justification: str = Field(description="Brief justification for the decision")
+    decision: str = Field(default="", description="Phase-appropriate decision string")
+    skills_match_score: float = Field(default=0.0, ge=0.0, le=1.0, description="How well skills match (0-1)")
+    experience_match_score: float = Field(default=0.0, ge=0.0, le=1.0, description="How well experience matches (0-1)")
+    education_match_score: float = Field(default=0.0, ge=0.0, le=1.0, description="How well education matches (0-1)")
+    justification: str = Field(default="", description="Brief justification for the decision")
 
 
 class Reward(BaseModel):

@@ -375,6 +375,26 @@ TASK_CONFIGS = {
 # GRADING
 # ============================================================================
 
+def _safe_float(value, default=0.0) -> float:
+    """Convert any value to a pure Python float, handling None, strings, numpy types."""
+    if value is None:
+        return float(default)
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return float(default)
+
+
+def _clamp_grade(value: float) -> float:
+    """Clamp grade to [0, 1] and ensure it's not exactly 0.0 or 1.0 for strict boundary checks."""
+    value = max(0.0, min(1.0, value))
+    if value <= 0.0:
+        value = 0.001
+    if value >= 1.0:
+        value = 0.999
+    return float(value)
+
+
 def grade(task_id: str, phase_index: int, action: Action) -> "Reward":
     """Deterministic grader: compares agent action against phase-specific ground truth."""
     from .models import Reward
@@ -386,51 +406,73 @@ def grade(task_id: str, phase_index: int, action: Action) -> "Reward":
     valid_decisions = phase["valid_decisions"]
     close_decisions = phase["close_decisions"]
 
-    # 1) Decision score
-    agent_decision = action.decision.upper().strip()
+    # Safely extract action fields with type coercion
+    action_skills = _safe_float(action.skills_match_score)
+    action_experience = _safe_float(action.experience_match_score)
+    action_education = _safe_float(action.education_match_score)
+    action_decision = (action.decision or "").upper().strip()
+    action_justification = action.justification or ""
+
+    gt_skills = _safe_float(gt.skills_match_score)
+    gt_experience = _safe_float(gt.experience_match_score)
+    gt_education = _safe_float(gt.education_match_score)
     gt_decision = gt.decision.upper().strip()
 
-    if agent_decision == gt_decision:
+    # 1) Decision score
+    if action_decision == gt_decision:
         decision_score = 1.0
-    elif agent_decision in close_decisions.get(gt_decision, []):
+    elif action_decision in close_decisions.get(gt_decision, []):
         decision_score = 0.4
-    elif agent_decision in valid_decisions:
+    elif action_decision in valid_decisions:
         decision_score = 0.1
     else:
         decision_score = 0.0
 
     # 2) Numeric score closeness (1 - absolute error)
-    skills_score = max(0.0, 1.0 - abs(action.skills_match_score - gt.skills_match_score))
-    experience_score = max(0.0, 1.0 - abs(action.experience_match_score - gt.experience_match_score))
-    education_score = max(0.0, 1.0 - abs(action.education_match_score - gt.education_match_score))
+    skills_score = float(max(0.0, 1.0 - abs(action_skills - gt_skills)))
+    experience_score = float(max(0.0, 1.0 - abs(action_experience - gt_experience)))
+    education_score = float(max(0.0, 1.0 - abs(action_education - gt_education)))
 
     # 3) Justification score: keyword overlap with ground truth
     gt_keywords = set(gt.justification.lower().split())
-    action_keywords = set(action.justification.lower().split())
+    action_keywords = set(action_justification.lower().split())
     if len(gt_keywords) > 0:
         overlap = len(gt_keywords & action_keywords)
-        justification_score = min(1.0, overlap / (len(gt_keywords) * 0.5))
+        justification_score = float(min(1.0, overlap / (len(gt_keywords) * 0.5)))
     else:
-        justification_score = 1.0 if len(action.justification) > 10 else 0.0
+        justification_score = 1.0 if len(action_justification) > 10 else 0.0
 
     # 4) Weighted total
-    total = (
+    total = float(
         weights["decision"] * decision_score
         + weights["skills"] * skills_score
         + weights["experience"] * experience_score
         + weights["education"] * education_score
         + weights["justification"] * justification_score
     )
-    total = round(min(1.0, max(0.0, total)), 4)
+    total = round(max(0.0, min(1.0, total)), 4)
+
+    # Clamp all scores to strict (0, 1) boundaries and ensure pure float types
+    decision_score = _clamp_grade(decision_score)
+    skills_score = _clamp_grade(skills_score)
+    experience_score = _clamp_grade(experience_score)
+    education_score = _clamp_grade(education_score)
+    justification_score = _clamp_grade(round(justification_score, 4))
+    total = _clamp_grade(total)
+
+    # Debug logging
+    print(f"GRADE [{task_id} phase {phase_index}]: total={total} ({type(total).__name__}), "
+          f"decision={decision_score}, skills={skills_score}, experience={experience_score}, "
+          f"education={education_score}, justification={justification_score}")
 
     # Build feedback
     feedback_parts = []
     if decision_score < 1.0:
-        feedback_parts.append(f"Expected decision '{gt_decision}', got '{agent_decision}'.")
+        feedback_parts.append(f"Expected decision '{gt_decision}', got '{action_decision}'.")
     if skills_score < 0.8:
-        feedback_parts.append(f"Skills score off by {abs(action.skills_match_score - gt.skills_match_score):.2f}.")
+        feedback_parts.append(f"Skills score off by {abs(action_skills - gt_skills):.2f}.")
     if experience_score < 0.8:
-        feedback_parts.append(f"Experience score off by {abs(action.experience_match_score - gt.experience_match_score):.2f}.")
+        feedback_parts.append(f"Experience score off by {abs(action_experience - gt_experience):.2f}.")
     if justification_score < 0.7:
         feedback_parts.append("Justification missing key points. Consider addressing: "
                               + ", ".join(list(gt_keywords - action_keywords)[:8]) + ".")
@@ -443,28 +485,46 @@ def grade(task_id: str, phase_index: int, action: Action) -> "Reward":
         skills_score=skills_score,
         experience_score=experience_score,
         education_score=education_score,
-        justification_score=round(justification_score, 4),
+        justification_score=justification_score,
         feedback=" ".join(feedback_parts),
     )
 
 
 # Per-task grader functions conforming to standard (action, observation) -> float interface
 def grade_easy_001(action, observation=None) -> float:
-    """Grader for easy_001 task. Returns score in [0.0, 1.0]."""
-    phase_index = (observation.phase - 1) if observation and hasattr(observation, 'phase') else 0
-    reward = grade("easy_001", phase_index, action)
-    return reward.total_score
+    """Grader for easy_001 task. Returns score in (0.0, 1.0)."""
+    try:
+        phase_index = (observation.phase - 1) if observation and hasattr(observation, 'phase') else 0
+        reward = grade("easy_001", phase_index, action)
+        result = _clamp_grade(float(reward.total_score))
+        print(f"GRADE [easy_001 final]: {result} ({type(result).__name__})")
+        return result
+    except Exception as e:
+        print(f"GRADE ERROR [easy_001]: {e}")
+        return 0.001
 
 
 def grade_medium_001(action, observation=None) -> float:
-    """Grader for medium_001 task. Returns score in [0.0, 1.0]."""
-    phase_index = (observation.phase - 1) if observation and hasattr(observation, 'phase') else 0
-    reward = grade("medium_001", phase_index, action)
-    return reward.total_score
+    """Grader for medium_001 task. Returns score in (0.0, 1.0)."""
+    try:
+        phase_index = (observation.phase - 1) if observation and hasattr(observation, 'phase') else 0
+        reward = grade("medium_001", phase_index, action)
+        result = _clamp_grade(float(reward.total_score))
+        print(f"GRADE [medium_001 final]: {result} ({type(result).__name__})")
+        return result
+    except Exception as e:
+        print(f"GRADE ERROR [medium_001]: {e}")
+        return 0.001
 
 
 def grade_hard_001(action, observation=None) -> float:
-    """Grader for hard_001 task. Returns score in [0.0, 1.0]."""
-    phase_index = (observation.phase - 1) if observation and hasattr(observation, 'phase') else 0
-    reward = grade("hard_001", phase_index, action)
-    return reward.total_score
+    """Grader for hard_001 task. Returns score in (0.0, 1.0)."""
+    try:
+        phase_index = (observation.phase - 1) if observation and hasattr(observation, 'phase') else 0
+        reward = grade("hard_001", phase_index, action)
+        result = _clamp_grade(float(reward.total_score))
+        print(f"GRADE [hard_001 final]: {result} ({type(result).__name__})")
+        return result
+    except Exception as e:
+        print(f"GRADE ERROR [hard_001]: {e}")
+        return 0.001
