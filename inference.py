@@ -213,20 +213,15 @@ def run_task(task_id: str, task_idx: int) -> None:
     """
     from job_reviewer_env.tasks import TASK_CONFIGS
 
-    env = JobReviewerEnv()
-    # Fast-forward the environment to the correct task
-    env._current_task_idx = task_idx
-    env._current_phase_idx = 0
-    env._done = False
-    env._rewards = []
-    env._phase_history = []
-    env._all_rewards = []
-
+    # Pass the single task_id to the env so it only knows about this task
+    env = JobReviewerEnv(task_ids=[task_id])
+    
     # How many phases does this specific task have?
     num_phases = len(TASK_CONFIGS[task_id]["phases"])
 
-    obs = env._build_observation(task_id, 0)
-    env._current_observation = obs
+    obs = env._current_observation  # already built in env init or reset
+    if not obs:
+        obs = env.reset()
 
     rewards: List[float] = []
     step_num = 0

@@ -26,8 +26,8 @@ class JobReviewerEnv:
         state()  -> dict
     """
 
-    def __init__(self):
-        self._task_ids: List[str] = list(TASK_CONFIGS.keys())
+    def __init__(self, task_ids: Optional[List[str]] = None):
+        self._task_ids: List[str] = task_ids if task_ids is not None else list(TASK_CONFIGS.keys())
         self._current_task_idx: int = 0
         self._current_phase_idx: int = 0
         self._done: bool = False
@@ -139,18 +139,25 @@ class JobReviewerEnv:
                 # All tasks done
                 self._done = True
                 self._current_observation = None
-                avg_score = sum(r.total_score for r in self._all_rewards) / len(self._all_rewards)
+                
+                # Compute global average safely
+                avg_score = 0.0
+                if self._all_rewards:
+                    avg_score = sum(r.total_score for r in self._all_rewards) / len(self._all_rewards)
+                
                 per_task_scores = {}
                 reward_idx = 0
                 for tid in self._task_ids:
                     n_phases = len(TASK_CONFIGS[tid]["phases"])
                     task_rewards = self._all_rewards[reward_idx:reward_idx + n_phases]
-                    per_task_scores[tid] = round(
-                        sum(r.total_score for r in task_rewards) / len(task_rewards), 4
-                    )
+                    if task_rewards:
+                        per_task_scores[tid] = round(
+                            sum(r.total_score for r in task_rewards) / len(task_rewards), 4
+                        )
                     reward_idx += n_phases
+                
                 info = {
-                    "tasks_completed": len(self._task_ids),
+                    "tasks_completed": len(per_task_scores),
                     "average_score": round(avg_score, 4),
                     "per_task_scores": per_task_scores,
                 }
