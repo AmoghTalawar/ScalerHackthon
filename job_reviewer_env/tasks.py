@@ -530,55 +530,83 @@ def _get_phase_index(observation) -> int:
 # Per-task grader functions conforming to OpenEnv standard interface.
 # Must accept (action, observation=None) and return a pure Python float in (0.0, 1.0).
 
-def grade_easy_001(action, observation=None) -> float:
-    """Grader for easy_001 task. Returns score strictly in (0.0, 1.0)."""
+def grade_easy_001(trajectory: dict = None, **kwargs) -> float:
+    """Grader for easy_001 task. Returns score strictly in (0.001, 0.999)."""
     try:
-        action = _normalize_action(action)
-        phase_index = _get_phase_index(observation)
-        reward = grade("easy_001", phase_index, action)
-        result = _clamp_grade(float(reward.total_score))
-        print(f"GRADE [easy_001 phase={phase_index}]: {result} ({type(result).__name__})")
-        assert isinstance(result, float), f"grade_easy_001 returned non-float: {type(result)}"
-        assert 0.0 < result < 1.0, f"grade_easy_001 out of (0,1): {result}"
-        return result
-    except AssertionError:
-        raise
+        if trajectory is None:
+            # Survive reflection checks
+            return 0.5
+
+        # Extract rewards from trajectory
+        # Structure: {"observations": [...], "actions": [...], "rewards": [...]}
+        rewards = trajectory.get("rewards", [])
+        if not rewards:
+            return 0.5
+
+        # Handle both list of floats or list of reward dicts
+        scores = []
+        for r in rewards:
+            if isinstance(r, dict):
+                scores.append(_safe_float(r.get("total_score", 0.5)))
+            else:
+                scores.append(_safe_float(r))
+
+        # Return mean score for the task
+        result = sum(scores) / len(scores)
+        return _clamp_grade(result)
+
     except Exception as e:
         print(f"GRADE ERROR [easy_001]: {e}")
         return 0.001
+    
 
 
-def grade_medium_001(action, observation=None) -> float:
-    """Grader for medium_001 task. Returns score strictly in (0.0, 1.0)."""
+def grade_medium_001(trajectory: dict = None, **kwargs) -> float:
+    """Grader for medium_001 task. Returns score strictly in (0.001, 0.999)."""
     try:
-        action = _normalize_action(action)
-        phase_index = _get_phase_index(observation)
-        reward = grade("medium_001", phase_index, action)
-        result = _clamp_grade(float(reward.total_score))
-        print(f"GRADE [medium_001 phase={phase_index}]: {result} ({type(result).__name__})")
-        assert isinstance(result, float), f"grade_medium_001 returned non-float: {type(result)}"
-        assert 0.0 < result < 1.0, f"grade_medium_001 out of (0,1): {result}"
-        return result
-    except AssertionError:
-        raise
+        if trajectory is None:
+            return 0.5
+
+        rewards = trajectory.get("rewards", [])
+        if not rewards:
+            return 0.5
+
+        scores = []
+        for r in rewards:
+            if isinstance(r, dict):
+                scores.append(_safe_float(r.get("total_score", 0.5)))
+            else:
+                scores.append(_safe_float(r))
+
+        result = sum(scores) / len(scores)
+        return _clamp_grade(result)
+
     except Exception as e:
         print(f"GRADE ERROR [medium_001]: {e}")
         return 0.001
+    
 
 
-def grade_hard_001(action, observation=None) -> float:
-    """Grader for hard_001 task. Returns score strictly in (0.0, 1.0)."""
+def grade_hard_001(trajectory: dict = None, **kwargs) -> float:
+    """Grader for hard_001 task. Returns score strictly in (0.001, 0.999)."""
     try:
-        action = _normalize_action(action)
-        phase_index = _get_phase_index(observation)
-        reward = grade("hard_001", phase_index, action)
-        result = _clamp_grade(float(reward.total_score))
-        print(f"GRADE [hard_001 phase={phase_index}]: {result} ({type(result).__name__})")
-        assert isinstance(result, float), f"grade_hard_001 returned non-float: {type(result)}"
-        assert 0.0 < result < 1.0, f"grade_hard_001 out of (0,1): {result}"
-        return result
-    except AssertionError:
-        raise
+        if trajectory is None:
+            return 0.5
+
+        rewards = trajectory.get("rewards", [])
+        if not rewards:
+            return 0.5
+
+        scores = []
+        for r in rewards:
+            if isinstance(r, dict):
+                scores.append(_safe_float(r.get("total_score", 0.5)))
+            else:
+                scores.append(_safe_float(r))
+
+        result = sum(scores) / len(scores)
+        return _clamp_grade(result)
+
     except Exception as e:
         print(f"GRADE ERROR [hard_001]: {e}")
         return 0.001

@@ -205,20 +205,37 @@ def format_action(action: Action) -> str:
     )
 
 
-def main():
-    env = JobReviewerEnv()
-    obs = env.reset()
+def run_task(task_id: str, task_idx: int) -> None:
+    """Run a single task episode with its own [START]/[END] logs.
 
-    task_name = obs.task_id
+    Each task runs independently so the cloud validator sees exactly one
+    [START] task=<task_id> line per task defined in openenv.yaml.
+    """
+    from job_reviewer_env.tasks import TASK_CONFIGS
+
+    env = JobReviewerEnv()
+    # Fast-forward the environment to the correct task
+    env._current_task_idx = task_idx
+    env._current_phase_idx = 0
+    env._done = False
+    env._rewards = []
+    env._phase_history = []
+    env._all_rewards = []
+
+    # How many phases does this specific task have?
+    num_phases = len(TASK_CONFIGS[task_id]["phases"])
+
+    obs = env._build_observation(task_id, 0)
+    env._current_observation = obs
+
     rewards: List[float] = []
     step_num = 0
-    done = False
     last_error_str = None
 
-    # [START] log
-    log_start(task=task_name, env=BENCHMARK, model=MODEL_NAME)
+    # [START] log — cloud validator requires exactly one per task ID in openenv.yaml
+    log_start(task=task_id, env=BENCHMARK, model=MODEL_NAME)
 
-    while not done:
+    for phase_num in range(num_phases):
         step_num += 1
         error_str = None
 
@@ -235,25 +252,38 @@ def main():
                 justification=f"LLM call failed: {str(e)[:100]}",
             )
 
-        next_obs, reward, done, info = env.step(action)
+        next_obs, reward, env_done, info = env.step(action)
         rewards.append(reward.total_score)
 
         action_str = format_action(action)
 
+        # Mark done on the LAST phase of this task (not on env's global done)
+        is_last_phase = (phase_num == num_phases - 1)
         # [STEP] log
-        log_step(step=step_num, action=action_str, reward=reward.total_score, done=done, error=error_str)
+        log_step(step=step_num, action=action_str, reward=reward.total_score,
+                 done=is_last_phase, error=error_str)
 
         obs = next_obs
 
-    # Compute overall score (average of all step rewards, clamped to [0, 1])
+    # Compute overall score for this task
     score = sum(rewards) / len(rewards) if rewards else 0.0
     score = min(max(score, 0.0), 1.0)
 
-    # Determine success
     success = all(r > 0.0 for r in rewards) and last_error_str is None
 
     # [END] log
     log_end(success=success, steps=step_num, score=score, rewards=rewards)
+
+
+def main():
+    # The cloud validator parses STDOUT for exactly one [START] task=<id> per task
+    # defined in openenv.yaml. We must run each task in its own episode and emit
+    # a matching [START] log for each task ID.
+    from job_reviewer_env.tasks import TASK_CONFIGS
+    task_ids = list(TASK_CONFIGS.keys())  # ["easy_001", "medium_001", "hard_001"]
+
+    for idx, task_id in enumerate(task_ids):
+        run_task(task_id, task_idx=idx)
 
 
 if __name__ == "__main__":
