@@ -490,41 +490,95 @@ def grade(task_id: str, phase_index: int, action: Action) -> "Reward":
     )
 
 
-# Per-task grader functions conforming to standard (action, observation) -> float interface
+def _normalize_action(action) -> "Action":
+    """
+    Normalize an action to an Action model instance.
+    Accepts: Action instance, dict, or any object with the required fields.
+    Phase 2 validator may pass raw dicts instead of Pydantic models.
+    """
+    if isinstance(action, Action):
+        return action
+    if isinstance(action, dict):
+        return Action(
+            decision=str(action.get("decision", "")).upper().strip(),
+            skills_match_score=_clamp_grade(_safe_float(action.get("skills_match_score", 0.5))),
+            experience_match_score=_clamp_grade(_safe_float(action.get("experience_match_score", 0.5))),
+            education_match_score=_clamp_grade(_safe_float(action.get("education_match_score", 0.5))),
+            justification=str(action.get("justification", "")),
+        )
+    # Try attribute access as fallback (e.g. SimpleNamespace or other objects)
+    return Action(
+        decision=str(getattr(action, "decision", "")).upper().strip(),
+        skills_match_score=_clamp_grade(_safe_float(getattr(action, "skills_match_score", 0.5))),
+        experience_match_score=_clamp_grade(_safe_float(getattr(action, "experience_match_score", 0.5))),
+        education_match_score=_clamp_grade(_safe_float(getattr(action, "education_match_score", 0.5))),
+        justification=str(getattr(action, "justification", "")),
+    )
+
+
+def _get_phase_index(observation) -> int:
+    """Safely extract 0-based phase index from observation (Pydantic model or dict)."""
+    if observation is None:
+        return 0
+    if isinstance(observation, dict):
+        return max(0, int(observation.get("phase", 1)) - 1)
+    if hasattr(observation, "phase"):
+        return max(0, int(observation.phase) - 1)
+    return 0
+
+
+# Per-task grader functions conforming to OpenEnv standard interface.
+# Must accept (action, observation=None) and return a pure Python float in (0.0, 1.0).
+
 def grade_easy_001(action, observation=None) -> float:
-    """Grader for easy_001 task. Returns score in (0.0, 1.0)."""
+    """Grader for easy_001 task. Returns score strictly in (0.0, 1.0)."""
     try:
-        phase_index = (observation.phase - 1) if observation and hasattr(observation, 'phase') else 0
+        action = _normalize_action(action)
+        phase_index = _get_phase_index(observation)
         reward = grade("easy_001", phase_index, action)
         result = _clamp_grade(float(reward.total_score))
-        print(f"GRADE [easy_001 final]: {result} ({type(result).__name__})")
+        print(f"GRADE [easy_001 phase={phase_index}]: {result} ({type(result).__name__})")
+        assert isinstance(result, float), f"grade_easy_001 returned non-float: {type(result)}"
+        assert 0.0 < result < 1.0, f"grade_easy_001 out of (0,1): {result}"
         return result
+    except AssertionError:
+        raise
     except Exception as e:
         print(f"GRADE ERROR [easy_001]: {e}")
         return 0.001
 
 
 def grade_medium_001(action, observation=None) -> float:
-    """Grader for medium_001 task. Returns score in (0.0, 1.0)."""
+    """Grader for medium_001 task. Returns score strictly in (0.0, 1.0)."""
     try:
-        phase_index = (observation.phase - 1) if observation and hasattr(observation, 'phase') else 0
+        action = _normalize_action(action)
+        phase_index = _get_phase_index(observation)
         reward = grade("medium_001", phase_index, action)
         result = _clamp_grade(float(reward.total_score))
-        print(f"GRADE [medium_001 final]: {result} ({type(result).__name__})")
+        print(f"GRADE [medium_001 phase={phase_index}]: {result} ({type(result).__name__})")
+        assert isinstance(result, float), f"grade_medium_001 returned non-float: {type(result)}"
+        assert 0.0 < result < 1.0, f"grade_medium_001 out of (0,1): {result}"
         return result
+    except AssertionError:
+        raise
     except Exception as e:
         print(f"GRADE ERROR [medium_001]: {e}")
         return 0.001
 
 
 def grade_hard_001(action, observation=None) -> float:
-    """Grader for hard_001 task. Returns score in (0.0, 1.0)."""
+    """Grader for hard_001 task. Returns score strictly in (0.0, 1.0)."""
     try:
-        phase_index = (observation.phase - 1) if observation and hasattr(observation, 'phase') else 0
+        action = _normalize_action(action)
+        phase_index = _get_phase_index(observation)
         reward = grade("hard_001", phase_index, action)
         result = _clamp_grade(float(reward.total_score))
-        print(f"GRADE [hard_001 final]: {result} ({type(result).__name__})")
+        print(f"GRADE [hard_001 phase={phase_index}]: {result} ({type(result).__name__})")
+        assert isinstance(result, float), f"grade_hard_001 returned non-float: {type(result)}"
+        assert 0.0 < result < 1.0, f"grade_hard_001 out of (0,1): {result}"
         return result
+    except AssertionError:
+        raise
     except Exception as e:
         print(f"GRADE ERROR [hard_001]: {e}")
         return 0.001
